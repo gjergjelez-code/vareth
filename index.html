@@ -456,7 +456,7 @@ const I18=(()=>{
   if(OUT.has(m))return s;
   r=m?a+one(m)+b:s;if(C.size>4000)C.clear();C.set(s,r);if(r!==s)OUT.add(r.trim());return r};
  // Page : textes et aria-label traduits dès qu'ils apparaissent ou changent
- const node=n=>{if(n.nodeType==3){const v=n.nodeValue,t=X.t(v);if(t!==v)n.nodeValue=t}else if(n.nodeType==1){for(const a of['aria-label','title']){const v=n.getAttribute(a);if(v){const t=X.t(v);if(t!==v)n.setAttribute(a,t)}}for(const c of n.childNodes)node(c)}};
+ const node=n=>{if(n.nodeType==3){const v=n.nodeValue,t=X.t(v);if(t!==v)n.nodeValue=t}else if(n.nodeType==1&&n.tagName!='SCRIPT'&&n.tagName!='STYLE'){for(const a of['aria-label','title']){const v=n.getAttribute(a);if(v){const t=X.t(v);if(t!==v)n.setAttribute(a,t)}}for(const c of n.childNodes)node(c)}};
  X.dom=()=>{if(X.lang=='fr')return;document.documentElement.lang='en';node(document.body);document.title=X.t(document.title);
   new MutationObserver(L=>{for(const m of L){if(m.type=='characterData')node(m.target);else if(m.type=='attributes')node(m.target);else for(const n of m.addedNodes)node(n)}}).observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-label','title']})};
  document.addEventListener('DOMContentLoaded',X.dom);
@@ -602,6 +602,8 @@ I18.add([
 ['SI PRÈS !','SO CLOSE!'],['ENNEMI','ENEMY'],
 // --- prochain objectif (screens.js result, goal) ---
 ['Tu peux t’offrir','You can now get'],['Encore # gloire pour','# more glory for'],['niveau','level'],
+// --- étiquettes des skins (screens.js, skins) ---
+['~^(.+) : (\\d+) gloire$','$1: $2 glory'],
 // --- coffres d’étoiles (coffre.js) ---
 ['COFFRES','CHESTS'],['ÉTOILES : #','STARS: #'],['# COFFRES PRÊTS','# CHESTS READY'],['# COFFRE PRÊT','# CHEST READY'],['PROCHAIN : # ÉTOILES','NEXT: # STARS'],['PROCHAIN : # ÉTOILE','NEXT: # STAR'],
 ['OUVRIR','OPEN'],['OUVRIR LE SUIVANT','OPEN THE NEXT ONE'],['Ouvrir un coffre','Open a chest'],['+# GLOIRE','+# GLORY'],['~^SKIN : (.+)$','SKIN: $1'],['Coffres','Chests'],['Coffres : # prêts','Chests: # ready'],['Coffre d’étoiles prêt ! (carte)','Star chest ready! (map)'],
@@ -920,9 +922,9 @@ cmpPerso=()=>!!cmp&&cmp.p=='oui';
  * Stockage : clé « cendres_opt », séparée de la sauvegarde du jeu.
  */
 
-// À renseigner : version affichée dans les Paramètres, lien d’invitation Discord, adresse e-mail du support.
-// Un lien vide = bouton grisé.
-const CFG={ver:'0.65',tag:'',discord:'',support:''};   // tag : ' TEST' en mode test (test.js), ajouté à la version affichée
+// Version affichée dans les Paramètres, lien d’invitation Discord, adresse e-mail du support (un lien vide = pas de bouton), page de la politique de confidentialité.
+// ads : pubs et achat « Sans pubs » (ads.js, achats.js). false pour la v1 publiée : ils ne sont encore que simulés ; true quand AdMob et Play Billing sont branchés dans l’app native.
+const CFG={ver:'1.0',tag:'',discord:'',support:'gj.studio.projects@gmail.com',privacy:'https://gjergjelez-code.github.io/vareth/confidentialite.html',ads:false};   // tag : ' TEST' en mode test (test.js), ajouté à la version affichée
 
 const OPT_KEY='cendres_opt';
 let opt={vib:1};   // vib : 1 = vibrations activées (par défaut), 0 = coupées
@@ -958,8 +960,8 @@ const Ads=(()=>{
   n:3,       // une pub entre les parties toutes les n parties terminées
   BONUS:150, // pub récompensée « Rejouer + bonus » (écran de défaite) : ressources ajoutées à chacune des 3 au départ
   bonus:0,   // bonus en attente : ajouté par init() (engine.js) à la partie suivante, puis remis à 0
-  // Vrai si une pub récompensée peut être proposée : choix de consentement fait (dans l’app native : et une pub chargée)
-  ready:()=>cmpOk(),
+  // Vrai si une pub récompensée peut être proposée : pubs activées (settings.js, CFG.ads), choix de consentement fait (dans l’app native : et une pub chargée)
+  ready:()=>!!CFG.ads&&cmpOk(),
   // Lance une pub récompensée. cb(true) : regardée jusqu’au bout (récompense due) ; cb(false) : abandonnée, pub déjà en cours ou pas de consentement
   rewarded(cb){if(busy||!A.ready()){cb(false);return}busy=1;sim(ok=>{busy=0;if(ok){SV.pa=SV.pg;save()}cb(ok)})},
   // Vrai si une pub doit passer avant la prochaine partie : « Sans pubs » pas acheté (achats.js, SV.np), consentement fait, aucune pub en cours, au moins n parties terminées, dont n depuis la dernière pub vue
@@ -4736,9 +4738,9 @@ const screens=(()=>{
  const settings=(g,m)=>{let cf=0,tm=0,bs=[];
   const reset=()=>{clearTimeout(tm);cf=0;bs.forEach(b=>b.draw())},
   go=u=>{if(!u)return toast('Bientôt disponible');if(u.startsWith('mailto:'))location.href=u;else open2(u)},
-  open2=u=>{try{window.open(u,'_blank','noopener')}catch(e){}};
+  open2=u=>{try{const C=window.Capacitor;if(C&&C.isNativePlatform&&C.isNativePlatform())location.href=u;else window.open(u,'_blank','noopener')}catch(e){}};   // app native : Capacitor ouvre l'adresse dans le navigateur
   open({title:'RÉGLAGES',back:()=>{clearTimeout(tm);if(g){Px.hide();run=1}else home(m)},build(mc,vh){
-   const TM=typeof Test!='undefined',P=g?{pv:67,rs:86,qt:105,ch:128,cb:141}:{pv:58,np:77,re:96,ch:124,cb:137};   // accueil : plus de bloc « Sauvegarde cloud » tant qu’elle n’existe pas (les stores refusent les fonctions « bientôt »)
+   const TM=typeof Test!='undefined',P=g?{pv:67,rs:86,qt:105,ch:128,cb:141}:CFG.ads?{pv:58,np:77,re:96,ch:124,cb:137}:{pv:58,ch:86,cb:99};   // accueil : plus de bloc « Sauvegarde cloud » tant qu’elle n’existe pas (les stores refusent les fonctions « bientôt »)
    if(TM&&!g)for(const k in P)P[k]+=19;   // mode test (test.js) : l’interrupteur s’intercale sous VIBRATION
    if(!g)for(const k in P)P[k]+=19;   // LANGUE (i18n.js), sous VIBRATION (et MODE TEST)
    for(const k in P)P[k]+=19;   // DALTONIEN, sous VIBRATION
@@ -4755,8 +4757,8 @@ const screens=(()=>{
    if(TM&&!g)row(82,'gear','MODE TEST',()=>Test.want,0,'te',()=>Test.toggle());
    if(!g)hb(mc,0,TM?96:77,W,14,()=>({t:I18.lang=='en'?'LANGUAGE : ENGLISH':'LANGUE : FRANÇAIS',k:'ink',i:'chat'}),'lg',I18.lang=='en'?'Language':'Langue').onclick=()=>I18.set(I18.lang=='en'?'fr':'en');   // relance le jeu dans l'autre langue
    const pv=hb(mc,0,P.pv,W,14,()=>({t:'VIE PRIVÉE',k:'pri',i:'shield'}),'pv','Vie privée');
-   pv.onclick=()=>{clearTimeout(tm);Px.hide();consentScreen(1,m,()=>{$('ov').style.display='none';settingsScreen(g,m)})};
-   if(!g){   // achats (achats.js) : « Sans pubs », puis « Restaurer les achats » (exigé par Apple)
+   pv.onclick=()=>{clearTimeout(tm);if(!CFG.ads)return go(CFG.privacy);Px.hide();consentScreen(1,m,()=>{$('ov').style.display='none';settingsScreen(g,m)})};   // sans pubs : la politique de confidentialité (page web)
+   if(!g&&CFG.ads){   // achats (achats.js) : « Sans pubs », puis « Restaurer les achats » (exigé par Apple)
     const np=hb(mc,0,P.np,W,14,()=>Shop.own()?{t:'SANS PUBS : ACTIF',k:'ok'}:{t:'SANS PUBS : '+Shop.price,k:'gold',i:'crown'},'np',Shop.own()?'Sans pubs : acheté':'Acheter Sans pubs, '+Shop.price);
     if(Shop.own())np.disabled=true;else np.onclick=()=>Shop.buy(ok=>{if(ok)settingsScreen(g,m)});
     hb(mc,0,P.re,W,14,()=>({t:'RESTAURER LES ACHATS',k:'ink'}),'re','Restaurer les achats').onclick=()=>Shop.restore()}
@@ -5324,7 +5326,7 @@ onresize=rz;
 init();
 rz();
 requestAnimationFrame(loop);
-cmpOk()?home():consentScreen();
+(!CFG.ads||cmpOk())?home():consentScreen();   // sans pubs (v1) : pas d'écran de consentement
 try{new ResizeObserver(rz).observe(c)}catch(e){}
 </script>
 <script>
