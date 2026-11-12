@@ -5,3 +5,4 @@ Version jouable du jeu (un seul fichier) et politique de confidentialité, publi
 - `index.html` : le jeu (généré par `python3 jeu/build.py store` dans le dépôt du jeu, ne pas modifier à la main)
 - `confidentialite.html` : politique de confidentialité (FR + EN), à indiquer dans les stores
 - `icone.png` : icône du jeu
+- `v2/` : aperçu de la refonte graphique (version 1.1), à tester avant de remplacer la page principale
